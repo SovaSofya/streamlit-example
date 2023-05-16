@@ -1,38 +1,39 @@
-from collections import namedtuple
-import altair as alt
-import math
+import os
+
 import pandas as pd
+
 import streamlit as st
+import streamlit.components.v1 as components
 
-"""
-# Welcome to Streamlit!
+# Create a _RELEASE constant. We'll set this to False while we're developing
+# the component, and True when we're ready to package and distribute it.
+_RELEASE = False
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:
+if not _RELEASE:
+    _selectable_data_table = components.declare_component(
+        "selectable_data_table",
+        url="http://localhost:3001",
+    )
+else:
+    parent_dir = os.path.dirname(os.path.abspath(__file__))
+    build_dir = os.path.join(parent_dir, "frontend/build")
+    _selectable_data_table = components.declare_component("selectable_data_table", path=build_dir)
 
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
+def selectable_data_table(data, key=None):
+    return _selectable_data_table(data=data, default=[], key=key)
 
+# Test code to play with the component while it's in development.
+# During development, we can run this just as we would any other Streamlit
+# app: `$ streamlit run selectable_data_table/__init__.py`
+if not _RELEASE:
+    raw_data = {
+        "First Name": ["Jason", "Molly", "Tina", "Jake", "Amy"],
+        "Last Name": ["Miller", "Jacobson", "Ali", "Milner", "Smith"],
+        "Age": [42, 52, 36, 24, 73],
+    }
+    df = pd.DataFrame(raw_data, columns=["First Name", "Last Name", "Age"])
 
-with st.echo(code_location='below'):
-    total_points = st.slider("Number of points in spiral", 1, 5000, 2000)
-    num_turns = st.slider("Number of turns in spiral", 1, 100, 9)
-
-    Point = namedtuple('Point', 'x y')
-    data = []
-
-    points_per_turn = total_points / num_turns
-
-    for curr_point_num in range(total_points):
-        curr_turn, i = divmod(curr_point_num, points_per_turn)
-        angle = (curr_turn + 1) * 2 * math.pi * i / points_per_turn
-        radius = curr_point_num / total_points
-        x = radius * math.cos(angle)
-        y = radius * math.sin(angle)
-        data.append(Point(x, y))
-
-    st.altair_chart(alt.Chart(pd.DataFrame(data), height=500, width=500)
-        .mark_circle(color='#0068c9', opacity=0.5)
-        .encode(x='x:Q', y='y:Q'))
+    rows = selectable_data_table(df)
+    if rows:
+        st.write("You have selected", rows)
